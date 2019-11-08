@@ -3,6 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/AlecAivazis/survey/v2"
+
 	"html"
 	"io/ioutil"
 	"net/http"
@@ -11,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AlecAivazis/survey"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/tidwall/gjson"
 )
