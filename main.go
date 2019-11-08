@@ -155,5 +155,5 @@ func main() {
 	fmt.Println(result.(string))
 
 	startWiki()
-	http.ListenAndServe(os.Getenv("port"), nil)
+	http.ListenAndServe(os.Getenv("PORT"), nil)
 }
