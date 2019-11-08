@@ -20,12 +20,12 @@ func check(err error) {
 
 type WikiOptions struct {
 	Pageid string
-	Title string
+	Title  string
 }
 
 type WikiSuggestions struct {
 	Status int
-	Data []WikiOptions
+	Data   []WikiOptions
 }
 
 func startWiki() {
@@ -69,9 +69,8 @@ func startWiki() {
 
 			wikiSuggestions := WikiSuggestions{
 				Status: 200,
-				Data: options,
+				Data:   options,
 			}
-
 
 			wikiSuggestionsJSON, err := json.Marshal(wikiSuggestions)
 
@@ -79,7 +78,6 @@ func startWiki() {
 			w.WriteHeader(http.StatusOK)
 
 			w.Write(wikiSuggestionsJSON)
-
 
 			//choice := ""
 			//
@@ -128,7 +126,6 @@ func startWiki() {
 
 	})
 
-
 }
 
 func reduce(arr []interface{}, cb func(acc interface{}, a interface{}, idx int, orArr []interface{}) interface{}, initialData *interface{}) {
@@ -155,5 +152,5 @@ func main() {
 	fmt.Println(result.(string))
 
 	startWiki()
-	http.ListenAndServe(os.Getenv("PORT"), nil)
+	http.ListenAndServe(":"+os.Getenv("PORT"), nil)
 }
