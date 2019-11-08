@@ -127,7 +127,7 @@ func startWiki() {
 
 	})
 
-	http.ListenAndServe(":3030", nil)
+	http.ListenAndServe(":80", nil)
 
 }
 
