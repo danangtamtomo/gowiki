@@ -1,20 +1,12 @@
 package main
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
-	"github.com/AlecAivazis/survey/v2"
-
-	"html"
+	"github.com/tidwall/gjson"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
-	"strconv"
-	"strings"
-
-	"github.com/PuerkitoBio/goquery"
-	"github.com/tidwall/gjson"
 )
 
 const WIKI_ENDPOINT = "https://en.wikipedia.org/w/api.php"
@@ -25,80 +17,117 @@ func check(err error) {
 	}
 }
 
-func getPeople() {
-	reader := bufio.NewReader(os.Stdin)
-	println("Enter the text:\n")
+type WikiOptions struct {
+	Pageid string
+	Title string
+}
 
-	keyword, _ := reader.ReadString('\n')
-	keyword = strings.TrimSuffix(keyword, "\n")
+type WikiSuggestions struct {
+	Status int
+	Data []WikiOptions
+}
 
-	url := WIKI_ENDPOINT + "?action=query&list=search&srsearch=" + url.QueryEscape(keyword) + "&format=json"
-	res, err := http.Get(url)
+func startWiki() {
+	http.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
 
-	check(err)
+		//reader := bufio.NewReader(os.Stdin)
+		//println("Enter the text:\n")
 
-	defer res.Body.Close()
+		//keyword, _ := reader.ReadString('\n')
+		//keyword = strings.TrimSuffix(keyword, "\n")
+		keyword := r.URL.Query().Get("keyword")
 
-	if res.StatusCode == http.StatusOK {
-		bodyBytes, err := ioutil.ReadAll(res.Body)
-		check(err)
-
-		bodyString := string(bodyBytes)
-
-		value := gjson.Get(bodyString, "query.search")
-
-		options := make([]string, 0)
-
-		for _, val := range value.Array() {
-			title := gjson.Get(val.String(), "title")
-			pageid := gjson.Get(val.String(), "pageid")
-			options = append(options, pageid.String()+"|"+title.String())
-		}
-
-		choice := ""
-
-		prompt := &survey.Select{
-			Message: "Choose what do you want to lookup!",
-			Options: options,
-		}
-
-		survey.AskOne(prompt, &choice)
-		picked := strings.Split(choice, "|")
-		pageid := picked[0]
-
-		getPageUrl := WIKI_ENDPOINT + "?action=parse&prop=text&pageid=" + pageid + "&format=json"
-
-		res, err := http.Get(getPageUrl)
+		url := WIKI_ENDPOINT + "?action=query&list=search&srsearch=" + url.QueryEscape(keyword) + "&format=json"
+		res, err := http.Get(url)
 
 		check(err)
 
 		defer res.Body.Close()
 
 		if res.StatusCode == http.StatusOK {
-
-			pageBytes, err := ioutil.ReadAll(res.Body)
+			bodyBytes, err := ioutil.ReadAll(res.Body)
 			check(err)
 
-			pageString := string(pageBytes)
+			bodyString := string(bodyBytes)
 
-			htmlText := gjson.Get(pageString, "parse.text")
+			value := gjson.Get(bodyString, "query.search")
 
-			doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlText.String()))
+			options := make([]WikiOptions, 0)
 
-			check(err)
+			for _, val := range value.Array() {
+				title := gjson.Get(val.String(), "title")
+				pageid := gjson.Get(val.String(), "pageid")
+				options = append(options, WikiOptions{
+					Pageid: pageid.String(),
+					Title:  title.String(),
+				})
+			}
 
-			paragraph := doc.Find("p").Text()
+			//wikiOptionsJSON, err := json.Marshal(options)
+			//check(err)
 
-			unquotedParagraph, err := strconv.Unquote(`"` + paragraph + `"`)
-			check(err)
+			wikiSuggestions := WikiSuggestions{
+				Status: 200,
+				Data: options,
+			}
 
-			result := html.UnescapeString(unquotedParagraph)
-			w := 10
 
-			fmt.Printf(fmt.Sprintf("%%-%ds", w/2), fmt.Sprintf(fmt.Sprintf("%%%ds", w/2), result))
+			wikiSuggestionsJSON, err := json.Marshal(wikiSuggestions)
+
+			w.Header().Set("Content-Type:", "application/json")
+			w.WriteHeader(http.StatusOK)
+
+			w.Write(wikiSuggestionsJSON)
+
+
+			//choice := ""
+			//
+			//prompt := &survey.Select{
+			//	Message: "Choose what do you want to lookup!",
+			//	Options: options,
+			//}
+			//
+			//survey.AskOne(prompt, &choice)
+			//picked := strings.Split(choice, "|")
+			//pageid := picked[0]
+
+			//getPageUrl := WIKI_ENDPOINT + "?action=parse&prop=text&pageid=" + pageid + "&format=json"
+			//
+			//res, err := http.Get(getPageUrl)
+			//
+			//check(err)
+			//
+			//defer res.Body.Close()
+			//
+			//if res.StatusCode == http.StatusOK {
+			//
+			//	pageBytes, err := ioutil.ReadAll(res.Body)
+			//	check(err)
+			//
+			//	pageString := string(pageBytes)
+			//
+			//	htmlText := gjson.Get(pageString, "parse.text")
+			//
+			//	doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlText.String()))
+			//
+			//	check(err)
+			//
+			//	paragraph := doc.Find("p").Text()
+			//
+			//	unquotedParagraph, err := strconv.Unquote(`"` + paragraph + `"`)
+			//	check(err)
+			//
+			//	result := html.UnescapeString(unquotedParagraph)
+			//	w := 10
+			//
+			//	fmt.Printf(fmt.Sprintf("%%-%ds", w/2), fmt.Sprintf(fmt.Sprintf("%%%ds", w/2), result))
+			//}
+
 		}
 
-	}
+	})
+
+	http.ListenAndServe(":3030", nil)
 
 }
 
@@ -125,5 +154,5 @@ func main() {
 	)
 	fmt.Println(result.(string))
 
-	getPeople()
+	startWiki()
 }
