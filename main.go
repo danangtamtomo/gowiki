@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 )
 
 const WIKI_ENDPOINT = "https://en.wikipedia.org/w/api.php"
@@ -127,7 +128,6 @@ func startWiki() {
 
 	})
 
-	http.ListenAndServe(":80", nil)
 
 }
 
@@ -155,4 +155,5 @@ func main() {
 	fmt.Println(result.(string))
 
 	startWiki()
+	http.ListenAndServeTLS(os.Getenv("port"), nil)
 }
